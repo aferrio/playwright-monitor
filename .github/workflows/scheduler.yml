@@ -32,10 +32,9 @@ jobs:
       - name: Send Telegram notification on failure
         if: steps.playwright-test.outcome == 'failure'
         run: |
-          MESSAGE="❌ Playwright Test Failed
+          TIMESTAMP=$(date -u)
+          MESSAGE=$(printf "❌ Playwright Test Failed\n\nURL: https://www.trekpleister.nl\nText not found: 'Uit onze folder'\nTime: %s" "$TIMESTAMP")
 
-URL: https://www.trekpleister.com
-Text not found: 'Uit onze folder'
-⏱ $(date -u)"
-
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage"           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}"           -d text="$MESSAGE"
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d text="$MESSAGE"
