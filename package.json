@@ -1,0 +1,11 @@
+{
+  "name": "playwright-scheduler",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.43.0",
+    "typescript": "^5.6.0"
+  }
+}

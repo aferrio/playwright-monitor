@@ -1,0 +1,41 @@
+name: Playwright Scheduled Test
+
+on:
+  schedule:
+    - cron: "*/2 * * * *"
+  workflow_dispatch:
+
+jobs:
+  run-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run tests
+        id: playwright-test
+        run: npx playwright test
+        continue-on-error: true
+
+      - name: Send Telegram notification on failure
+        if: steps.playwright-test.outcome == 'failure'
+        run: |
+          MESSAGE="❌ Playwright Test Failed
+
+URL: https://www.trekpleister.com
+Text not found: 'Uit onze folder'
+⏱ $(date -u)"
+
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage"           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}"           -d text="$MESSAGE"
