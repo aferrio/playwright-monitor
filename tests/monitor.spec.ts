@@ -1,11 +1,17 @@
 import { test, expect, chromium, Browser, BrowserContext, Page } from '@playwright/test';
+import { EmailNotifier, getEmailConfig } from '../utils/emailNotifier';
 
 let browser: Browser;
 let context: BrowserContext;
 let page: Page;
+let emailNotifier: EmailNotifier;
 
 test.beforeEach(async () => {
   console.log("⏱ Setup test:", new Date().toISOString());
+  
+  // Inizializza emailNotifier
+  const emailConfig = getEmailConfig();
+  emailNotifier = new EmailNotifier(emailConfig);
   
   // Lancia Chromium con parametri per bypassare protezioni CDN/bot
   browser = await chromium.launch({
@@ -121,14 +127,26 @@ test('has title', async () => {
     
   } catch (error) {
     console.error("❌ Errore nel test title:", error);
+    
+    // Invia notifica email
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const timestamp = new Date().toISOString();
+    await emailNotifier.sendTestFailureNotification('has title', errorMessage, timestamp);
+    
     // Prova strategia alternativa
     console.log("🔄 Tentativo con strategia alternativa...");
-    await page.goto('https://www.trekpleister.nl', {
-      waitUntil: 'load',
-      timeout: 60000
-    });
-    await page.waitForTimeout(3000);
-    await expect(page).toHaveTitle(/Trekpleister | Homepage/)
+    try {
+      await page.goto('https://www.trekpleister.nl', {
+        waitUntil: 'load',
+        timeout: 60000
+      });
+      await page.waitForTimeout(3000);
+      await expect(page).toHaveTitle(/Trekpleister | Homepage/)
+    } catch (finalError) {
+      const finalErrorMessage = finalError instanceof Error ? finalError.message : String(finalError);
+      await emailNotifier.sendTestFailureNotification('has title (strategia alternativa)', finalErrorMessage, timestamp);
+      throw finalError;
+    }
   }
 });
 
@@ -169,7 +187,7 @@ test('Controlla contenuto su trekpleister.nl', async () => {
       }
 
       // Verifica che il testo sia presente
-      expect(body?.includes('Uit onze folder')).toBeTruthy();
+      expect(body?.includes('Uit onze folder   adddddd')).toBeTruthy();
 
       console.log("✔ Test OK: testo trovato");
       return; // Uscita dal loop se il test ha successo
@@ -196,5 +214,11 @@ test('Controlla contenuto su trekpleister.nl', async () => {
 
   // Se arriviamo qui, tutti i tentativi sono falliti
   console.error("❌ Test FALLITO dopo tutti i tentativi:", lastError);
+  
+  // Invia notifica email finale
+  const finalErrorMessage = lastError instanceof Error ? lastError.message : String(lastError);
+  const timestamp = new Date().toISOString();
+  await emailNotifier.sendTestFailureNotification('Controlla contenuto su trekpleister.nl', finalErrorMessage, timestamp);
+  
   throw lastError; // permette a GitHub Actions di rilevare il fallimento e inviare Telegram
 });

@@ -5,3 +5,19 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Environment variables (contains sensitive email credentials)
+.env
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
