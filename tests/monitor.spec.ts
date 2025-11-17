@@ -7,46 +7,85 @@ let page: Page;
 test.beforeEach(async () => {
   console.log("⏱ Setup test:", new Date().toISOString());
   
-  // Lancia Chromium con parametri ottimizzati per CDN
+  // Lancia Chromium con parametri per bypassare protezioni CDN/bot
   browser = await chromium.launch({
     headless: true,
     args: [
-      '--disable-http2',
-      '--disable-web-security',
-      '--disable-blink-features=AutomationControlled',
-      '--disable-dev-shm-usage',
       '--no-sandbox',
-      '--ignore-certificate-errors',
-      '--ignore-ssl-errors',
-      '--ignore-certificate-errors-spki-list',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--disable-gpu',
+      '--disable-web-security',
+      '--disable-features=VizDisplayCompositor',
+      '--disable-background-networking',
       '--disable-background-timer-throttling',
-      '--disable-backgrounding-occluded-windows',
       '--disable-renderer-backgrounding',
-      '--disable-features=TranslateUI',
-      '--disable-ipc-flooding-protection'
+      '--disable-backgrounding-occluded-windows',
+      '--disable-client-side-phishing-detection',
+      '--disable-crash-reporter',
+      '--disable-oopr-debug-crash-dump',
+      '--no-crash-upload',
+      '--disable-low-res-tiling',
+      '--disable-extensions',
+      '--disable-default-apps'
     ]
   });
 
-  // Crea un context con configurazioni per CDN
+  // Crea un context con stealth mode
   context = await browser.newContext({
     ignoreHTTPSErrors: true,
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     extraHTTPHeaders: {
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.5',
-      'Accept-Encoding': 'gzip, deflate',
-      'DNT': '1',
-      'Connection': 'keep-alive',
-      'Cache-Control': 'no-cache'
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      'Accept-Language': 'nl-NL,nl;q=0.9,en;q=0.8',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+      'sec-ch-ua-mobile': '?0',
+      'sec-ch-ua-platform': '"Windows"',
+      'sec-fetch-dest': 'document',
+      'sec-fetch-mode': 'navigate',
+      'sec-fetch-site': 'none',
+      'sec-fetch-user': '?1',
+      'upgrade-insecure-requests': '1'
     },
-    viewport: { width: 1920, height: 1080 }
+    viewport: { width: 1366, height: 768 },
+    locale: 'nl-NL',
+    timezoneId: 'Europe/Amsterdam'
   });
 
   page = await context.newPage();
   
-  // Imposta timeout di navigazione più lungo per CDN
-  page.setDefaultNavigationTimeout(45000);
-  page.setDefaultTimeout(30000);
+  // Nascondi il fatto che siamo Playwright
+  await page.addInitScript(() => {
+    // Rimuovi webdriver property
+    Object.defineProperty(navigator, 'webdriver', {
+      get: () => undefined,
+    });
+    
+    // Modifica la property chrome per sembrare un vero Chrome
+    Object.defineProperty(navigator, 'chrome', {
+      get: () => ({
+        runtime: {},
+      }),
+    });
+    
+    // Override plugins
+    Object.defineProperty(navigator, 'plugins', {
+      get: () => [1, 2, 3, 4, 5],
+    });
+    
+    // Override languages
+    Object.defineProperty(navigator, 'languages', {
+      get: () => ['nl-NL', 'nl', 'en'],
+    });
+  });
+  
+  // Timeout più lunghi
+  page.setDefaultNavigationTimeout(60000);
+  page.setDefaultTimeout(45000);
 });
 
 test.afterEach(async () => {
@@ -58,17 +97,39 @@ test.afterEach(async () => {
 test('has title', async () => {
   console.log("⏱ Esecuzione test:", new Date().toISOString());
 
-  // Naviga verso il sito con strategia per CDN
-  await page.goto('https://www.trekpleister.nl', {
-    waitUntil: 'networkidle', // Aspetta che la rete sia inattiva (importante per CDN)
-    timeout: 45000
-  });
+  try {
+    // Prima prova con un sito semplice per testare la connessione
+    console.log("🧪 Test connessione con httpbin.org...");
+    await page.goto('https://httpbin.org/ip', {
+      waitUntil: 'load',
+      timeout: 15000
+    });
+    console.log("✅ Connessione base OK");
+    
+    // Ora prova il sito target
+    console.log("🎯 Navigando verso trekpleister...");
+    await page.goto('https://www.trekpleister.nl', {
+      waitUntil: 'commit',
+      timeout: 45000
+    });
+    
+    // Aspetta un po' e poi controlla il titolo
+    await page.waitForTimeout(5000);
 
-  // Aspetta un po' per assicurarsi che la CDN abbia caricato tutto
-  await page.waitForTimeout(2000);
-
-  // Expect a title "to contain" a substring.
-  await expect(page).toHaveTitle(/Trekpleister | Homepage/)
+    // Expect a title "to contain" a substring.
+    await expect(page).toHaveTitle(/Trekpleister | Homepage/)
+    
+  } catch (error) {
+    console.error("❌ Errore nel test title:", error);
+    // Prova strategia alternativa
+    console.log("🔄 Tentativo con strategia alternativa...");
+    await page.goto('https://www.trekpleister.nl', {
+      waitUntil: 'load',
+      timeout: 60000
+    });
+    await page.waitForTimeout(3000);
+    await expect(page).toHaveTitle(/Trekpleister | Homepage/)
+  }
 });
 
 test('Controlla contenuto su trekpleister.nl', async () => {
@@ -81,17 +142,31 @@ test('Controlla contenuto su trekpleister.nl', async () => {
     try {
       console.log(`🔄 Tentativo ${i + 1}/${retries}`);
       
-      // Naviga verso il sito con strategia ottimizzata per CDN
-      await page.goto('https://www.trekpleister.nl', {
-        waitUntil: 'networkidle', // Aspetta che tutti i request di rete siano completati
-        timeout: 45000 // Timeout più lungo per CDN lente
-      });
+      // Prima prova a navigare senza aspettare il caricamento completo
+      if (i === 0) {
+        await page.goto('https://www.trekpleister.nl', {
+          waitUntil: 'commit', // Solo aspetta che la navigazione inizi
+          timeout: 30000
+        });
+        await page.waitForTimeout(5000); // Aspetta 5 secondi
+      } else {
+        // Negli altri tentativi usa strategia più aggressiva
+        await page.goto('https://www.trekpleister.nl', {
+          waitUntil: 'load',
+          timeout: 60000
+        });
+        await page.waitForTimeout(3000);
+      }
 
-      // Aspetta che la CDN abbia completato il caricamento
-      await page.waitForTimeout(3000);
+      // Prova a aspettare che ci sia del contenuto nel body
+      await page.waitForSelector('body', { timeout: 10000 });
 
       // Leggi tutto il contenuto del body
       const body = await page.textContent('body');
+
+      if (!body) {
+        throw new Error('Body vuoto o non trovato');
+      }
 
       // Verifica che il testo sia presente
       expect(body?.includes('Uit onze folder')).toBeTruthy();
@@ -105,8 +180,16 @@ test('Controlla contenuto su trekpleister.nl', async () => {
       console.error(`❌ Tentativo ${i + 1} fallito:`, errorMessage);
       
       if (i < retries - 1) {
-        console.log("⏳ Aspetto 2 secondi prima del prossimo tentativo...");
-        await page.waitForTimeout(2000);
+        console.log("⏳ Aspetto 5 secondi prima del prossimo tentativo...");
+        // Prova a ricaricare la pagina se non è il primo tentativo
+        if (i > 0) {
+          try {
+            await page.reload({ waitUntil: 'commit', timeout: 15000 });
+          } catch (reloadError) {
+            console.log("Reload fallito, continuo con nuovo goto");
+          }
+        }
+        await page.waitForTimeout(5000);
       }
     }
   }
