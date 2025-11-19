@@ -2,8 +2,8 @@ name: Site Monitoring
 
 on:
   schedule:
-    # Esegue ogni ora dalle 7:00 alle 22:00 (UTC)
-    - cron: '0 7-22 * * *'
+    # Esegue ogni 5 minuti
+    - cron: '*/5 * * * *'
   workflow_dispatch:
     # Permette di eseguire manualmente il workflow
 
