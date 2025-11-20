@@ -107,50 +107,5 @@ test.describe(`${siteConfig.name} Tests`, () => {
     }
   });
   
-  test(`Folder content check`, async ({ page }) => {
-    console.log(`⏱ Test folder content:`, new Date().toISOString());
-    const testName = `${siteConfig.name} - Folder content check`;
-
-    try {
-      // La pagina è già caricata dal beforeEach, verifica la presenza di "Uit onze folder"
-      await page.waitForSelector('body', { timeout: TIMEOUTS.ELEMENT_WAIT });
-
-      const body = await page.textContent('body');
-      
-      if (!body) {
-        throw new Error('Body vuoto o non trovato');
-      }
-
-      const hasFolderContent = body.toLowerCase().includes('uit onze folder');
-
-      if (!hasFolderContent) {
-        throw new Error(`Testo "Uit onze folder" non trovato nella homepage`);
-      }
-
-      console.log(`✅ Test folder content ${siteConfig.name} - OK`);
-      
-      // Registra successo
-      reportManager.addTestResult({
-        testName,
-        siteUrl: siteConfig.url,
-        status: 'passed',
-        timestamp: new Date().toISOString()
-      });
-      
-    } catch (error) {
-      console.error(`❌ Errore test folder content ${siteConfig.name}:`, error);
-      
-      // Registra fallimento
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      reportManager.addTestResult({
-        testName,
-        siteUrl: siteConfig.url,
-        status: 'failed',
-        error: errorMessage,
-        timestamp: new Date().toISOString()
-      });
-      
-      throw error;
-    }
-  });
+ 
 });

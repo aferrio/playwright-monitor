@@ -37,26 +37,36 @@ export class TelegramNotifier {
   formatTestReport(failedCount: number, totalCount: number, failedTests: any[]): string {
     const successRate = Math.round(((totalCount - failedCount) / totalCount) * 100);
     
-    let message = `🚨 <b>Alert Monitoring Siti</b>\n\n`;
-    message += `📊 <b>Risultati:</b>\n`;
-    message += `• Totale test: ${totalCount}\n`;
-    message += `• ✅ Passati: ${totalCount - failedCount}\n`;
-    message += `• ❌ Falliti: ${failedCount}\n`;
-    message += `• 📈 Tasso successo: ${successRate}%\n\n`;
+    let message = `🚨 <b>ERRORE HOMEPAGE MONITORING</b>\n\n`;
+    message += `⚠️ Rilevati problemi sulle homepage monitorate:\n\n`;
+    message += `📊 <b>Risultati controlli:</b>\n`;
+    message += `• 🔍 Totale test homepage: ${totalCount}\n`;
+    message += `• ✅ Homepage funzionanti: ${totalCount - failedCount}\n`;
+    message += `• ❌ Homepage con errori: ${failedCount}\n`;
+    message += `• 📈 Disponibilità siti: ${successRate}%\n\n`;
 
     if (failedTests.length > 0) {
-      message += `❌ <b>Test Falliti:</b>\n`;
+      message += `🚫 <b>HOMEPAGE NON FUNZIONANTI:</b>\n`;
       failedTests.forEach((test, index) => {
         const siteName = test.testName.split(' - ')[0];
-        const testType = test.testName.split(' - ')[1] || 'Test';
-        message += `${index + 1}. <b>${siteName}</b>\n`;
-        message += `   🔗 ${test.siteUrl}\n`;
-        message += `   📝 ${testType}\n`;
-        message += `   ⏰ ${new Date(test.timestamp).toLocaleString('it-IT')}\n\n`;
+        const testType = test.testName.split(' - ')[1] || 'Homepage Test';
+        
+        // Determina l'icona in base al sito
+        let siteIcon = '🌐';
+        if (siteName.toLowerCase().includes('kruidvat')) {
+          siteIcon = '🛒';
+        } else if (siteName.toLowerCase().includes('trekpleister')) {
+          siteIcon = '💊';
+        }
+        
+        message += `${index + 1}. ${siteIcon} <b>${siteName}</b>\n`;
+        message += `   🔗 Homepage: ${test.siteUrl}\n`;
+        message += `   ❌ Problema: ${testType}\n`;
+        message += `   ⏰ Rilevato: ${new Date(test.timestamp).toLocaleString('it-IT')}\n\n`;
       });
     }
 
-    message += `🤖 <i>Messaggio automatico da Playwright Monitor</i>`;
+    message += `🔄 <i>Controllo automatico homepage - Playwright Monitor</i>`;
     
     return message;
   }

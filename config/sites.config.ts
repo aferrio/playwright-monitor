@@ -23,7 +23,7 @@ export const SITES_CONFIG: Record<string, SiteConfig> = {
     name: 'Kruidvat Nederland',
     url: 'https://www.kruidvat.nl',
     locale: 'nl-NL',
-    expectedContent: ['Kruidvat', 'apotheek', 'gezondheid', 'drogist'],
+    expectedContent: ['Kruidvat', 'apotheek', 'gezondheid', 'drogist', 'Weektoppers'],
     titlePattern: /Kruidvat/i
   },
   
