@@ -12,7 +12,6 @@ test.describe(`${siteConfig.name} Tests`, () => {
     
     // Naviga al sito
     await page.goto(siteConfig.url, {
-      waitUntil: 'commit',
       timeout: TIMEOUTS.NAVIGATION
     });
 
