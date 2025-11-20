@@ -108,7 +108,9 @@ export default defineConfig({
             '--no-crash-upload',
             '--disable-low-res-tiling',
             '--disable-extensions',
-            '--disable-default-apps'
+            '--disable-default-apps',
+            '--disable-http2',
+            '--disable-quic'
           ]
         }
       },

@@ -89,16 +89,16 @@ export function getEmailConfig(): EmailConfig {
   const config = {
     smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
     smtpPort: parseInt(process.env.SMTP_PORT || '587'),
-    smtpUser: process.env.SMTP_USER || '',
-    smtpPassword: process.env.SMTP_PASSWORD || '',
+    smtpUser: process.env.EMAIL_USER || '',
+    smtpPassword: process.env.EMAIL_PASSWORD || '',
     fromEmail: process.env.FROM_EMAIL || 'monitoring@playwright.com',
-    toEmail: 'adriano.ferrio@gmail.com',
+    toEmail: process.env.TO_EMAIL || 'adriano.ferrio@gmail.com',
   };
   
   // Avviso se le credenziali sono mancanti
   if (!config.smtpUser || !config.smtpPassword) {
     console.warn('ATTENZIONE: Credenziali SMTP mancanti! Le email non funzioneranno.');
-    console.warn('Assicurati che il file .env contenga SMTP_USER e SMTP_PASSWORD');
+    console.warn('Assicurati che le variabili EMAIL_USER e EMAIL_PASSWORD siano configurate');
   } else {
     console.log('📧 Configurazione email caricata correttamente');
   }
