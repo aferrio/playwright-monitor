@@ -10,6 +10,7 @@ on:
 jobs:
   monitor:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     
     steps:
       - name: Checkout repository
@@ -29,6 +30,7 @@ jobs:
 
       - name: Run monitoring tests
         id: test-run
+        timeout-minutes: 12
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
@@ -52,10 +54,37 @@ jobs:
           echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
           echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf > /dev/null
           
-          # Esegui test con retry integrato
-          npx playwright test --reporter=line,html --max-failures=3
+          # Funzione di cleanup per forzare notifiche
+          cleanup_and_notify() {
+            echo "⚠️ Test interrotti da timeout - cleanup processi e notifica emergenza"
+            
+            # Kill tutti i processi Chromium/Playwright bloccati
+            sudo pkill -f chromium || true
+            sudo pkill -f playwright || true
+            sudo pkill -f node.*test || true
+            
+            # Forza cleanup delle risorse
+            sudo killall -9 Xvfb || true
+            
+            if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+              curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+                -d chat_id="$TELEGRAM_CHAT_ID" \
+                -d parse_mode="HTML" \
+                -d text="🚨 <b>TIMEOUT SISTEMA MONITORING</b>%0A%0A⏰ Test terminati forzatamente dopo 12 minuti%0A🔧 Processi Chromium/Playwright killed%0A💾 Cleanup risorse completato%0A%0A📝 <b>Action:</b> Site Monitoring%0A🔗 <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View Details</a>%0A⏰ $(date -u +\"%Y-%m-%d %H:%M UTC\")%0A%0A🤖 <i>Emergency Force Cleanup</i>" || echo "❌ Notifica Telegram fallita"
+            fi
+            exit 1
+          }
           
-          echo "✅ Test completati"
+          # Imposta trap per timeout e segnali
+          trap cleanup_and_notify TERM INT
+          
+          # Esegui test con timeout interno ridotto e kill automatico
+          timeout --kill-after=30s 10m npx playwright test --reporter=line,html --max-failures=3 || {
+            echo "⚠️ Test terminati da timeout interno - eseguo cleanup"
+            cleanup_and_notify
+          }
+          
+          echo "✅ Test completati con successo"
         continue-on-error: true
 
       - name: Upload test results

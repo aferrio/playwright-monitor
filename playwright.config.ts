@@ -190,9 +190,9 @@ export default defineConfig({
     /* In CI usa headless e configurazioni ottimizzate */
     use: {
       headless: true,
-      /* Timeout più lunghi per CI */
-      navigationTimeout: 180 * 1000, // 3 minuti
-      actionTimeout: 90 * 1000, // 1.5 minuti
+      /* Timeout più corti per CI per evitare hanging */
+      navigationTimeout: 60 * 1000, // 1 minuto
+      actionTimeout: 30 * 1000, // 30 secondi
       /* Bypass aggressivo per CI */
       bypassCSP: true,
       /* Ignora tutti gli errori SSL */
@@ -204,12 +204,12 @@ export default defineConfig({
     },
     /* Un solo worker in CI per evitare conflitti di risorse */
     workers: 1,
-    /* Retry extra in CI */
-    retries: 2,
-    /* Timeout globale più lungo */
-    timeout: 180 * 1000, // 3 minuti
+    /* Retry ridotti in CI per evitare hanging */
+    retries: 0,
+    /* Timeout globale più corto per evitare hanging */
+    timeout: 120 * 1000, // 2 minuti max per test
     expect: {
-      timeout: 30 * 1000 // 30 secondi per assertions
+      timeout: 20 * 1000 // 20 secondi per assertions
     }
   }),
 
