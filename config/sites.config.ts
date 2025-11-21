@@ -36,14 +36,9 @@ export const SITES_CONFIG: Record<string, SiteConfig> = {
   }
 };
 
-// URL di test per verificare la connettività
-export const TEST_URLS = {
-  CONNECTIVITY_CHECK: 'https://httpbin.org/ip'
-};
-
 // Timeout configurazioni
 export const TIMEOUTS = {
-  NAVIGATION: 60000,
+  NAVIGATION: 30000,
   QUICK_NAVIGATION: 30000,
   ELEMENT_WAIT: 10000,
   RETRY_DELAY: 5000,
