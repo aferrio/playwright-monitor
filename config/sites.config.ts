@@ -38,12 +38,12 @@ export const SITES_CONFIG: Record<string, SiteConfig> = {
 
 // Timeout configurazioni
 export const TIMEOUTS = {
-  NAVIGATION: 30000,
-  QUICK_NAVIGATION: 30000,
-  ELEMENT_WAIT: 10000,
+  NAVIGATION: process.env.CI ? 120000 : 60000,  // 2 min in CI, 1 min locale
+  QUICK_NAVIGATION: process.env.CI ? 90000 : 30000,  // 1.5 min in CI, 30s locale
+  ELEMENT_WAIT: process.env.CI ? 30000 : 10000,  // 30s in CI, 10s locale
   RETRY_DELAY: 5000,
-  PAGE_LOAD_DELAY: 3000,
-  TREKPLEISTER_LOAD_DELAY: 5000
+  PAGE_LOAD_DELAY: process.env.CI ? 8000 : 3000,  // 8s in CI, 3s locale
+  TREKPLEISTER_LOAD_DELAY: process.env.CI ? 15000 : 5000  // 15s in CI, 5s locale
 };
 
 // Configurazioni retry

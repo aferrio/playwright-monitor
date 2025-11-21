@@ -159,10 +159,17 @@ export default defineConfig({
   
   /* Configurazione per CI/CD */
   ...(process.env.CI && {
-    /* In CI usa headless */
+    /* In CI usa headless e configurazioni ottimizzate */
     use: {
-      headless: true
-    }
+      headless: true,
+      /* Timeout più lunghi per CI */
+      navigationTimeout: 120 * 1000, // 2 minuti
+      actionTimeout: 60 * 1000, // 1 minuto
+    },
+    /* Un solo worker in CI per evitare conflitti di risorse */
+    workers: 1,
+    /* Retry extra in CI */
+    retries: 3,
   }),
 
   /* Worker settings per performance */

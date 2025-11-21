@@ -25,9 +25,10 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install chromium
+        run: npx playwright install --with-deps chromium
 
       - name: Run monitoring tests
+        id: test-run
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
@@ -37,8 +38,11 @@ jobs:
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          CI: true
         run: |
-          npx playwright test --reporter=line
+          echo "🚀 Avvio test di monitoraggio..."
+          npx playwright test --reporter=line,html
+          echo "✅ Test completati"
         continue-on-error: true
 
       - name: Upload test results
@@ -51,13 +55,23 @@ jobs:
             playwright-report/
           retention-days: 7
 
-      - name: Send Telegram notification on failure
-        if: failure()
+      - name: Check for test failures and notify
+        if: always()
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-            -d chat_id="$TELEGRAM_CHAT_ID" \
-            -d parse_mode="HTML" \
-            -d text="🚨 <b>GitHub Action Failed</b>%0A%0A📝 <b>Workflow:</b> Site Monitoring%0A🔗 <b>Run:</b> <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View Details</a>%0A⏰ <b>Time:</b> $(date -u +"%Y-%m-%d %H:%M UTC")%0A%0A🤖 <i>Automated GitHub Action Alert</i>"
+          echo "🔍 Controllo risultati test..."
+          
+          # Controlla se ci sono stati fallimenti nei test results
+          if [ -d "test-results" ] && [ "$(find test-results -name '*.json' -type f | wc -l)" -gt 0 ]; then
+            echo "📊 Test results trovati - le notifiche saranno gestite dal sistema interno"
+          else
+            echo "⚠️ Nessun test result trovato - possibile errore di sistema"
+            if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+              curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+                -d chat_id="$TELEGRAM_CHAT_ID" \
+                -d parse_mode="HTML" \
+                -d text="⚠️ <b>Sistema Monitoring - Errore di Sistema</b>%0A%0A🚫 Nessun risultato di test generato%0AVerificare la configurazione del workflow%0A%0A🔗 <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View Run Details</a>%0A⏰ $(date -u +\"%Y-%m-%d %H:%M UTC\")%0A%0A🤖 <i>GitHub Actions Alert</i>"
+            fi
+          fi
