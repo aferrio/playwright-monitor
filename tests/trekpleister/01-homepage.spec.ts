@@ -21,14 +21,14 @@ test.describe(`${siteConfig.name} Tests`, () => {
     // Naviga al sito target
     console.log(`🎯 Navigando verso ${siteConfig.name}...`);
     await page.goto(siteConfig.url, {
-      waitUntil: 'domcontentloaded',
+      waitUntil: process.env.CI ? 'commit' : 'domcontentloaded',
       timeout: TIMEOUTS.NAVIGATION
     });
     
     // Gestisci cookie popup
     await CookieHelper.handleAllCookies(page, 'trekpleister');
     
-    await page.waitForTimeout(TIMEOUTS.TREKPLEISTER_LOAD_DELAY);
+    await page.waitForTimeout(TIMEOUTS.PAGE_LOAD_DELAY);
     console.log(`✅ Setup completato per ${siteConfig.name}`);
   });
 

@@ -20,7 +20,7 @@ test.describe(`${siteConfig.name} Tests`, () => {
     
     // Naviga al sito
     await page.goto(siteConfig.url, {
-      waitUntil: 'domcontentloaded',
+      waitUntil: process.env.CI ? 'commit' : 'domcontentloaded',
       timeout: TIMEOUTS.NAVIGATION
     });
 
