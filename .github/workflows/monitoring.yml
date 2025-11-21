@@ -39,9 +39,22 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           CI: true
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+          DISPLAY: :99
         run: |
           echo "🚀 Avvio test di monitoraggio..."
-          npx playwright test --reporter=line,html
+          
+          # Setup display virtuale per headless
+          export DISPLAY=:99
+          sudo Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          
+          # Configura DNS per stabilità
+          echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
+          echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf > /dev/null
+          
+          # Esegui test con retry integrato
+          npx playwright test --reporter=line,html --max-failures=3
+          
           echo "✅ Test completati"
         continue-on-error: true
 

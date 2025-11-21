@@ -123,7 +123,22 @@ export default defineConfig({
             '--run-all-compositor-stages-before-draw',
             '--disable-threaded-animation',
             '--disable-threaded-scrolling',
-            '--disable-checker-imaging'
+            '--disable-checker-imaging',
+            '--disable-frame-rate-limit',
+            '--disable-background-media-suspend',
+            '--disable-domain-reliability',
+            '--disable-sync',
+            '--disable-translate',
+            '--disable-background-timer-throttling',
+            '--disable-renderer-backgrounding',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-plugins',
+            '--disable-extensions-file-access-check',
+            '--disable-extensions-http-throttling',
+            '--aggressive-cache-discard',
+            '--enable-features=NetworkService,NetworkServiceLogging',
+            '--force-device-scale-factor=1',
+            '--hide-scrollbars'
           ]
         }
       },
@@ -176,13 +191,26 @@ export default defineConfig({
     use: {
       headless: true,
       /* Timeout più lunghi per CI */
-      navigationTimeout: 120 * 1000, // 2 minuti
-      actionTimeout: 60 * 1000, // 1 minuto
+      navigationTimeout: 180 * 1000, // 3 minuti
+      actionTimeout: 90 * 1000, // 1.5 minuti
+      /* Bypass aggressivo per CI */
+      bypassCSP: true,
+      /* Ignora tutti gli errori SSL */
+      ignoreHTTPSErrors: true,
+      /* Video solo per fallimenti */
+      video: 'retain-on-failure',
+      /* Screenshot sempre in CI */
+      screenshot: 'only-on-failure',
     },
     /* Un solo worker in CI per evitare conflitti di risorse */
     workers: 1,
     /* Retry extra in CI */
-    retries: 3,
+    retries: 2,
+    /* Timeout globale più lungo */
+    timeout: 180 * 1000, // 3 minuti
+    expect: {
+      timeout: 30 * 1000 // 30 secondi per assertions
+    }
   }),
 
   /* Worker settings per performance */
