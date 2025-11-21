@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../utils/test.fixture';
 import { SITES_CONFIG, TIMEOUTS } from '../../config/sites.config';
 import { TestReportManager } from '../../utils/testReportManager';
 import { CookieHelper } from '../../utils/cookieHelper';
@@ -23,8 +23,6 @@ test.describe(`${siteConfig.name} Tests`, () => {
       waitUntil: 'domcontentloaded',
       timeout: TIMEOUTS.NAVIGATION
     });
-    
-    await page.waitForLoadState('networkidle', { timeout: 15000 });
 
     // Gestisci cookie popup
     await CookieHelper.handleAllCookies(page, 'kruidvat');
@@ -81,15 +79,16 @@ test.describe(`${siteConfig.name} Tests`, () => {
         throw new Error('Body vuoto o non trovato');
       }
 
-      const hasExpectedContent = siteConfig.expectedContent.some(content => 
-        body.toLowerCase().includes(content.toLowerCase())
+      // Verifica che TUTTI i contenuti attesi siano presenti
+      const missingContent = siteConfig.expectedContent.filter(content => 
+        !body.toLowerCase().includes(content.toLowerCase())
       );
 
-      if (!hasExpectedContent) {
-        throw new Error(`Contenuto atteso non trovato. Contenuti cercati: ${siteConfig.expectedContent.join(', ')}`);
+      if (missingContent.length > 0) {
+        throw new Error(`Contenuti mancanti sulla homepage: ${missingContent.join(', ')}. Contenuti cercati: ${siteConfig.expectedContent.join(', ')}`);
       }
 
-      console.log(`✅ Test contenuto ${siteConfig.name} - OK`);
+      console.log(`✅ Test contenuto ${siteConfig.name} - Tutti i contenuti trovati: ${siteConfig.expectedContent.join(', ')}`);
       
       // Registra successo
       reportManager.addTestResult({

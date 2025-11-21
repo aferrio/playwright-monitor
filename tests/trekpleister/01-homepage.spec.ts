@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../utils/test.fixture';
 import { SITES_CONFIG, TIMEOUTS, TEST_URLS } from '../../config/sites.config';
 import { TestReportManager } from '../../utils/testReportManager';
 import { CookieHelper } from '../../utils/cookieHelper';
@@ -24,9 +24,6 @@ test.describe(`${siteConfig.name} Tests`, () => {
       waitUntil: 'domcontentloaded',
       timeout: TIMEOUTS.NAVIGATION
     });
-    
-    // Aspetta che la pagina sia effettivamente caricata
-    await page.waitForLoadState('networkidle', { timeout: 15000 });
     
     // Gestisci cookie popup
     await CookieHelper.handleAllCookies(page, 'trekpleister');

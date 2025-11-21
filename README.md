@@ -5,16 +5,17 @@ Sistema completo di monitoraggio automatico per siti web con notifiche email e T
 ## 🚀 Caratteristiche
 
 - **Monitoraggio Multi-Sito**: Monitora automaticamente Kruidvat BE/NL e Trekpleister
-- **Gestione Automatica Cookie**: Accetta automaticamente i popup dei cookie
+- **Gestione Automatica Cookie**: Accetta automaticamente i popup dei cookie  
 - **Notifiche Dual-Channel**: Email dettagliate + notifiche Telegram istantanee
 - **Report Centralizzato**: Un solo report finale dopo tutti i test
-- **CI/CD Ready**: Workflow GitHub Actions preconfigurato
-- **Anti-Bot Protection**: Configurazioni avanzate per evitare detection
+- **CI/CD Ready**: Workflow GitHub Actions ottimizzato per headless
+- **Configurazione Robusta**: Timeout dinamici e gestione errori avanzata
+- **Contenuto Intelligente**: Verifica presenza di contenuti specifici per sito
 
 ## 📋 Requisiti
 
-- Node.js 18+ 
-- NPM/Yarn
+- Node.js 20+ 
+- NPM
 - Account Gmail per notifiche email
 - Bot Telegram per notifiche istantanee
 
@@ -23,10 +24,10 @@ Sistema completo di monitoraggio automatico per siti web con notifiche email e T
 ### 1. Clone e Setup
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/aferrio/playwright-monitor.git
 cd playwright-monitor
 npm install
-npx playwright install chromium
+npx playwright install --with-deps chromium
 ```
 
 ### 2. Configurazione Email
@@ -39,8 +40,10 @@ EMAIL_USER=tuo-email@gmail.com
 EMAIL_PASSWORD=tua-app-password-gmail
 FROM_EMAIL=tuo-email@gmail.com
 TO_EMAIL=destinatario@gmail.com
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
 
-# Configurazione Telegram (opzionale ma consigliato)
+# Configurazione Telegram (opzionale ma consigliato)  
 TELEGRAM_BOT_TOKEN=123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
 TELEGRAM_CHAT_ID=-1001234567890
 ```
@@ -94,43 +97,49 @@ npx playwright test --headed
      - `TELEGRAM_CHAT_ID`
 
 2. **Workflow automatico**:
-   - Il monitoring gira automaticamente ogni ora dalle 7:00 alle 22:00 UTC
+   - Il monitoring gira automaticamente **ogni 5 minuti** 24/7
    - Può essere eseguito manualmente da `Actions` → `Site Monitoring` → `Run workflow`
+   - Configurazione CI ottimizzata per ambiente headless Ubuntu
 
 ## 📁 Struttura Progetto
 
 ```
 playwright-monitor/
 ├── .github/workflows/
-│   └── monitoring.yml          # GitHub Actions workflow
+│   └── monitoring.yml          # GitHub Actions workflow (ogni 5 min)
 ├── config/
-│   └── sites.config.ts         # Configurazione siti
+│   └── sites.config.ts         # Configurazione siti e timeout
 ├── tests/
 │   ├── kruidvat_be/           # Test Kruidvat Belgio
-│   ├── kruidvat_nl/           # Test Kruidvat Olanda
-│   └── trekpleister/          # Test Trekpleister
+│   ├── kruidvat_nl/           # Test Kruidvat Olanda (+ Weektoppers)
+│   └── trekpleister/          # Test Trekpleister (+ Uit onze folder)
 ├── utils/
 │   ├── cookieHelper.ts        # Gestione automatica cookie
 │   ├── emailNotifier.ts       # Notifiche email
 │   ├── telegramNotifier.ts    # Notifiche Telegram
 │   └── testReportManager.ts   # Manager report centralizzato
-├── playwright.config.ts       # Configurazione Playwright
+├── playwright.config.ts       # Configurazione Playwright ottimizzata
 ├── package.json
 └── README.md
 ```
 
 ## 🧪 Cosa Monitora
 
-### Kruidvat Belgio & Olanda
-- ✅ **Homepage Loading**: Verifica che la homepage si carichi correttamente
-- ✅ **Content Validation**: Controlla la presenza di contenuti chiave
-- ✅ **Cookie Acceptance**: Gestisce automaticamente popup cookie
-- ✅ **Response Times**: Monitora i tempi di risposta
+### Kruidvat België
+- ✅ **Homepage Loading**: Verifica caricamento e titolo
+- ✅ **Content Validation**: Controlla presenza di 'Kruidvat', 'apotheek', 'gezondheid'
+- ✅ **Cookie Management**: Gestione automatica popup
+
+### Kruidvat Nederland  
+- ✅ **Homepage Loading**: Verifica caricamento e titolo
+- ✅ **Content Validation**: Controlla presenza di 'Kruidvat', 'apotheek', 'gezondheid', 'drogist', **'Weektoppers'**
+- ✅ **Cookie Management**: Gestione automatica popup
 
 ### Trekpleister
-- ✅ **Site Accessibility**: Verifica accessibilità del sito
-- ✅ **Navigation Check**: Testa la navigazione principale
-- ✅ **Content Presence**: Valida la presenza di elementi critici
+- ✅ **Homepage Loading**: Verifica caricamento e titolo  
+- ✅ **Content Validation**: Controlla presenza di **'Uit onze folder'**, 'Trekpleister'
+- ✅ **Cookie Management**: Gestione automatica popup
+- ✅ **Extended Timeouts**: Configurazioni specifiche per maggiore stabilità
 
 ## 📧 Sistema Notifiche
 
@@ -155,19 +164,48 @@ playwright-monitor/
 
 ## ⚙️ Configurazione Avanzata
 
-### Timeouts Personalizzati
+### GitHub Repository Secrets
 
-Modifica `config/sites.config.ts` per personalizzare timeouts per sito:
+Nel tuo repository GitHub (`Settings` → `Secrets and variables` → `Actions`), configura:
+
+```
+📧 Email/Gmail:
+EMAIL_USER=tuo-email@gmail.com
+EMAIL_PASSWORD=tua-app-password-gmail  
+FROM_EMAIL=tuo-email@gmail.com
+TO_EMAIL=destinatario@gmail.com
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+
+🤖 Telegram:
+TELEGRAM_BOT_TOKEN=123456789:ABC-DEF...
+TELEGRAM_CHAT_ID=-1001234567890
+```
+
+### Timeout Dinamici
+
+Il sistema usa timeout diversi per locale vs CI:
 
 ```typescript
-export const SITES_CONFIG = {
-  KRUIDVAT_BE: {
-    // ... altre config
-    timeout: 45000,        // 45 secondi
-    navigationTimeout: 60000  // 60 secondi per navigazione
-  }
-};
+NAVIGATION: process.env.CI ? 120000 : 60000,    // 2min CI, 1min locale  
+ELEMENT_WAIT: process.env.CI ? 30000 : 10000,   // 30s CI, 10s locale
+TREKPLEISTER_LOAD_DELAY: process.env.CI ? 15000 : 5000  // 15s CI, 5s locale
 ```
+
+### Contenuti Verificati per Sito
+
+```typescript
+KRUIDVAT_BE: ['Kruidvat', 'apotheek', 'gezondheid']
+KRUIDVAT_NL: ['Kruidvat', 'apotheek', 'gezondheid', 'drogist', 'Weektoppers']  
+TREKPLEISTER: ['Uit onze folder', 'Trekpleister']
+```
+
+### Configurazioni Browser Avanzate
+
+- **Headless ottimizzato**: Disabilitazione HTTP/2, QUIC per stabilità
+- **Anti-detection**: Headers realistici, user-agent autentico
+- **CI-Ready**: 1 worker, retry extra, timeout estesi
+- **Network stability**: Cache control, certificati ignorati
 
 ### Cookie Selectors
 
@@ -191,51 +229,74 @@ La configurazione include già:
 
 ## 🔧 Troubleshooting
 
-### ❌ Test Falliscono Sempre
-1. Verifica connettività: `ping www.kruidvat.be`
-2. Controlla proxy/firewall aziendale
-3. Testa in locale con `--headed` per vedere il browser
-4. Verifica logs in `test-results/`
+### ❌ Test Falliscono in GitHub Actions
+1. Verifica che tutti i **Repository Secrets** siano configurati
+2. Controlla logs delle Actions per errori specifici
+3. Verifica connettività: timeout potrebbero essere insufficienti
+4. Usa `workflow_dispatch` per test manuali
 
 ### 📧 Email Non Arrivano
-1. Verifica Gmail App Password (non password account)
-2. Controlla spam/promo folder
-3. Testa configurazione SMTP: `npm run test:email`
-4. Verifica 2FA attivata su Gmail
+1. Verifica Gmail **App Password** (non password account normale)
+2. Controlla cartella spam/promozioni
+3. Assicurati che **2FA sia attivata** su Gmail
+4. Verifica che `SMTP_HOST` e `SMTP_PORT` siano corretti nei secrets
 
-### 📱 Telegram Non Funziona
+### 📱 Telegram Non Funziona  
 1. Verifica Bot Token: `https://api.telegram.org/bot<TOKEN>/getMe`
 2. Controlla Chat ID: `https://api.telegram.org/bot<TOKEN>/getUpdates`
-3. Assicurati che il bot sia nel gruppo/chat
-4. Testa invio manuale: `npm run test:telegram`
+3. Assicurati che il bot sia aggiunto al gruppo/chat
+4. Testa localmente con le stesse variabili d'ambiente
 
-### 🤖 Site Detection Issues
-1. Aumenta delay tra azioni
-2. Modifica User-Agent in `playwright.config.ts`
-3. Aggiungi proxy se necessario
-4. Usa `--slow-mo=1000` per debug
+### 🌐 Errori di Navigazione (ERR_ABORTED, ERR_HTTP2_PROTOCOL_ERROR)
+1. Il sistema è già ottimizzato con flags anti-errore
+2. Se persistono: aumenta timeout in `sites.config.ts`  
+3. Controlla se i siti hanno cambiato architettura
+4. Verifica logs Playwright per dettagli specifici
+
+### 🔍 Contenuti Non Trovati
+1. Verifica che i testi in `expectedContent` esistano ancora sui siti
+2. I controlli sono **case-insensitive**
+3. **TUTTI** i contenuti devono essere presenti (logica AND)
+4. Usa browser headless locale per debug: `npx playwright test --headed`
 
 ## 📊 Monitoring Dashboard
 
 I risultati sono disponibili in:
-- **GitHub Actions**: Logs dettagliati e artefatti
-- **Email Reports**: Report HTML formattati
-- **Telegram**: Alert immediati
-- **Local**: `test-results/` e `playwright-report/`
+- **GitHub Actions**: Logs dettagliati, artifacts e history completa  
+- **Email Reports**: Report HTML formattati con statistiche complete
+- **Telegram**: Alert immediati con icone per sito (🛒 Kruidvat, 💊 Trekpleister)
+- **Local**: `test-results/` e `playwright-report/` per sviluppo
 
-## 🚀 Deploy Production
+## 🚀 Deploy e Utilizzo
 
-### Heroku/Railway/Vercel
-1. Aggiungi variabili ambiente
-2. Configura cron job o scheduler
-3. Deploy dal repository GitHub
-
-### Self-Hosted
+### Test Locali
 ```bash
-# PM2 per processo persistente
-npm install -g pm2
-pm2 start "npm test" --name "site-monitor" --cron "0 */1 * * *"
+# Esegui tutti i test
+npm test
+
+# Test specifici per sito
+npx playwright test tests/kruidvat_be/
+npx playwright test tests/kruidvat_nl/  
+npx playwright test tests/trekpleister/
+
+# Debug con browser visibile
+npx playwright test --headed
+
+# UI interattiva per sviluppo
+npx playwright test --ui
 ```
+
+### GitHub Actions (Produzione)
+1. **Push del codice** → Attivazione automatica ogni 5 minuti
+2. **Esecuzione manuale** → `Actions` tab → `Site Monitoring` → `Run workflow`
+3. **Monitoring continuo** → 24/7 senza interventi
+4. **Notifiche automatiche** → Solo in caso di problemi
+
+### Configurazione Secrets
+Nel repository GitHub, configura questi secrets obbligatori:
+- `EMAIL_USER`, `EMAIL_PASSWORD`, `FROM_EMAIL`, `TO_EMAIL`
+- `SMTP_HOST`, `SMTP_PORT`  
+- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
 
 ## 🤝 Contribuire
 
