@@ -32,26 +32,37 @@ test.describe(`${siteConfig.name} Tests`, () => {
   });
 
   test(`Homepage title`, async ({ page }) => {
+    console.log(`⏱ Test homepage title:`, new Date().toISOString());
     const testName = `${siteConfig.name} - Homepage title`;
-    
-    await TestTimeoutManager.withTimeout(testName, async () => {
-      console.log(`⏱ Test homepage title:`, new Date().toISOString());
-      const startTime = Date.now();
 
+    try {
       await expect(page).toHaveTitle(siteConfig.titlePattern);
       
-      const duration = Date.now() - startTime;
-      console.log(`✅ Test ${siteConfig.name} homepage - OK (${duration}ms)`);
+      console.log(`✅ Test ${siteConfig.name} homepage - OK`);
       
       // Registra successo
       reportManager.addTestResult({
         testName,
         siteUrl: siteConfig.url,
         status: 'passed',
-        timestamp: new Date().toISOString(),
-        duration
+        timestamp: new Date().toISOString()
       });
-    }, 90000);
+      
+    } catch (error) {
+      console.error(`❌ Errore test ${siteConfig.name}:`, error);
+      
+      // Registra fallimento
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      reportManager.addTestResult({
+        testName,
+        siteUrl: siteConfig.url,
+        status: 'failed',
+        error: errorMessage,
+        timestamp: new Date().toISOString()
+      });
+      
+      throw error;
+    }
   });
   
   test(`Homepage content check`, async ({ page }) => {
