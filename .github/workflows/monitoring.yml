@@ -55,7 +55,7 @@ jobs:
             playwright-report/
           retention-days: 7
 
-      - name: Check for test failures and notify
+      - name: Check for test failures and notify on Telegram
         if: always()
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}

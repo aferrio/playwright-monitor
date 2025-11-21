@@ -10,12 +10,23 @@ test.describe(`${siteConfig.name} Tests`, () => {
   test.beforeEach(async ({ page }) => {
     console.log(`🔧 Setup per ${siteConfig.name}...`);
     
+    // Configurazioni extra per stabilità in CI
+    await page.setExtraHTTPHeaders({
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      'Accept-Language': 'nl-NL,nl;q=0.9,en;q=0.8',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    });
+    
     // Naviga al sito target
     console.log(`🎯 Navigando verso ${siteConfig.name}...`);
     await page.goto(siteConfig.url, {
-      waitUntil: 'commit',
+      waitUntil: 'domcontentloaded',
       timeout: TIMEOUTS.NAVIGATION
     });
+    
+    // Aspetta che la pagina sia effettivamente caricata
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
     
     // Gestisci cookie popup
     await CookieHelper.handleAllCookies(page, 'trekpleister');

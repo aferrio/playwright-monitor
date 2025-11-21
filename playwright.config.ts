@@ -110,7 +110,20 @@ export default defineConfig({
             '--disable-extensions',
             '--disable-default-apps',
             '--disable-http2',
-            '--disable-quic'
+            '--disable-quic',
+            '--disable-site-isolation-trials',
+            '--disable-blink-features=AutomationControlled',
+            '--disable-component-extensions-with-background-pages',
+            '--disable-ipc-flooding-protection',
+            '--ignore-certificate-errors',
+            '--ignore-ssl-errors',
+            '--ignore-certificate-errors-spki-list',
+            '--disable-features=TranslateUI',
+            '--disable-features=VizDisplayCompositor,VizHitTestSurfaceLayer',
+            '--run-all-compositor-stages-before-draw',
+            '--disable-threaded-animation',
+            '--disable-threaded-scrolling',
+            '--disable-checker-imaging'
           ]
         }
       },

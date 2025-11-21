@@ -10,10 +10,21 @@ test.describe(`${siteConfig.name} Tests`, () => {
   test.beforeEach(async ({ page }) => {
     console.log(`🔧 Setup per ${siteConfig.name}...`);
     
+    // Configurazioni extra per stabilità in CI
+    await page.setExtraHTTPHeaders({
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      'Accept-Language': 'nl-BE,nl;q=0.9,en;q=0.8',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    });
+    
     // Naviga al sito
     await page.goto(siteConfig.url, {
+      waitUntil: 'domcontentloaded',
       timeout: TIMEOUTS.NAVIGATION
     });
+    
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
 
     // Gestisci cookie popup
     await CookieHelper.handleAllCookies(page, 'kruidvat');
