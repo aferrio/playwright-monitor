@@ -16,19 +16,17 @@ jobs:
       with:
         node-version: 20
 
-    - name: Install Playwright
+    - name: Install Playwright + stealth
       run: |
         npm init -y
-        npm install playwright playwright-extra playwright-extra-plugin-stealth
+        npm install playwright playwright-stealth
         npx playwright install --with-deps
 
-    - name: Create Playwright script
+    - name: Create script
       run: |
         cat << 'EOF' > test-kruidvat.js
-        const { chromium } = require('playwright-extra');
-        const stealth = require('playwright-extra-plugin-stealth')();
-
-        chromium.use(stealth);
+        const { chromium } = require("playwright");
+        const stealth = require("playwright-stealth");
 
         (async () => {
           const browser = await chromium.launch({
@@ -37,33 +35,30 @@ jobs:
               "--no-sandbox",
               "--disable-setuid-sandbox",
 
-              // ***** FORCE HTTP/1 *****
+              // force HTTP/1
               "--disable-http2",
-              "--disable-features=NetworkService",
-              "--disable-features=AllowHTTP2",
+              "--disable-features=NetworkService,AllowHTTP2",
 
-              // ***** ANTI-DETETCTION *****
+              // anti-detection
               "--disable-blink-features=AutomationControlled",
-              "--disable-web-security",
-              "--disable-features=IsolateOrigins,site-per-process"
+              "--disable-features=IsolateOrigins,site-per-process",
             ]
           });
 
           const context = await browser.newContext({
+            ...stealth, // Apply stealth modifications
             locale: "nl-NL",
             timezoneId: "Europe/Amsterdam",
-            userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123 Safari/537.36",
+            userAgent:
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123 Safari/537.36",
             viewport: { width: 1366, height: 768 },
-            deviceScaleFactor: 1,
-            geolocation: { longitude: 5.1214, latitude: 52.0907 },
-            permissions: ["geolocation"],
             ignoreHTTPSErrors: true
           });
 
           const page = await context.newPage();
 
           try {
-            console.log("Opening Kruidvat...");
+            console.log("Opening Kruidvat…");
 
             await page.goto("https://www.kruidvat.nl", {
               waitUntil: "domcontentloaded",
@@ -73,12 +68,7 @@ jobs:
             console.log("Title:", await page.title());
 
             await page.screenshot({ path: "kruidvat.png", fullPage: true });
-
-            const html = await page.content();
-            const fs = require("fs");
-            fs.writeFileSync("kruidvat.html", html);
-
-            console.log("Saved screenshot + HTML");
+            require("fs").writeFileSync("kruidvat.html", await page.content());
 
           } catch (err) {
             console.error("ERROR:", err);
@@ -88,7 +78,7 @@ jobs:
         })();
         EOF
 
-    - name: Run Playwright script
+    - name: Run script
       run: node test-kruidvat.js
 
     - name: Upload artifacts
