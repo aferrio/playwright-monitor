@@ -51,8 +51,7 @@ jobs:
           try {
             console.log("Opening Kruidvat...");
             await page.goto("https://www.kruidvat.nl", {
-              waitUntil: "networkidle",
-              timeout: 60000
+              timeout: 20000
             });
 
             const title = await page.title();

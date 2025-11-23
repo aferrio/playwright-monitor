@@ -1,222 +1,181 @@
 import { defineConfig, devices } from '@playwright/test';
-import * as dotenv from 'dotenv';
+import { testConfig } from './config/test-config';
 
-// Carica variabili d'ambiente
-dotenv.config();
-
-/**
- * Configurazione Playwright per il monitoraggio di siti web
- * @see https://playwright.dev/docs/test-configuration
- */
-export default defineConfig({
-  testDir: './tests',
+// Configurazioni comuni per tutti i siti con CDN/anti-detection
+const cdnConfig = {
+  actionTimeout: 60000,
+  navigationTimeout: 180000,
   
-  /* Esegui test in parallelo */
-  fullyParallel: true,
-  
-  /* Fallisce la build in CI se hai lasciato test.only */
-  forbidOnly: !!process.env.CI,
-  
-  /* Retry sui fallimenti in CI */
-  retries: process.env.CI ? 2 : 1,
-  
-  /* Reporter per diversi ambienti */
-  reporter: process.env.CI 
-    ? [['html'], ['github']] 
-    : [['list'], ['html']],
-  
-  /* Configurazione globale per tutti i test */
-  use: {
-    /* URL base per le tue applicazioni */
-    // baseURL: 'https://www.trekpleister.nl',
-    
-    /* Raccolta trace sui fallimenti */
-    trace: 'on-first-retry',
-    
-    /* Screenshot sui fallimenti */
-    screenshot: 'only-on-failure',
-    
-    /* Video sui fallimenti */
-    video: 'retain-on-failure',
-    
-    /* Timeout di navigazione */
-    navigationTimeout: 60 * 1000, // 60 secondi
-    
-    /* Timeout di azione */
-    actionTimeout: 30 * 1000, // 30 secondi
-    
-    /* Ignora errori HTTPS (utile per monitoring) */
-    ignoreHTTPSErrors: true,
-    
-    /* User Agent realistico */
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    
-    /* Headers extra per sembrare un browser reale */
-    extraHTTPHeaders: {
-      'Accept-Language': 'nl-NL,nl;q=0.9,en;q=0.8',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-      'sec-ch-ua-mobile': '?0',
-      'sec-ch-ua-platform': '"Windows"',
-      'sec-fetch-dest': 'document',
-      'sec-fetch-mode': 'navigate',
-      'sec-fetch-site': 'none',
-      'sec-fetch-user': '?1',
-      'upgrade-insecure-requests': '1'
-    },
-    
-    /* Locale olandese per Trekpleister */
-    locale: 'nl-NL',
-    timezoneId: 'Europe/Amsterdam',
-    
-    /* Viewport standard */
-    viewport: { width: 1366, height: 768 },
-    
-    /* Gestione automatica permessi per notifiche, geolocalizzazione, ecc */
-    permissions: ['notifications'],
-    
-    /* Accetta automaticamente dialoghi del browser */
-    acceptDownloads: true
+  extraHTTPHeaders: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+    'Cache-Control': 'max-age=0',
+    'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Windows"',
+    'sec-fetch-dest': 'document',
+    'sec-fetch-mode': 'navigate',
+    'sec-fetch-site': 'none',
+    'sec-fetch-user': '?1'
   },
 
-  /* Configurazione progetti per diversi browser */
+  launchOptions: {
+    args: [
+      '--disable-blink-features=AutomationControlled',
+      '--disable-features=VizDisplayCompositor,VizHitTestSurfaceLayer',
+      '--disable-ipc-flooding-protection',
+      '--disable-renderer-backgrounding',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-background-timer-throttling',
+      '--disable-background-networking',
+      '--disable-default-apps',
+      '--disable-extensions',
+      '--disable-sync',
+      '--disable-translate',
+      '--hide-scrollbars',
+      '--no-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-http2',
+      '--disable-web-security',
+      '--ignore-certificate-errors',
+      '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    ]
+  }
+};
+
+export default defineConfig({
+  testDir: './tests',
+  /* Run tests in files in parallel */
+  fullyParallel: true,
+  /* Fail the build on CI if you accidentally left test.only in the source code. */
+  forbidOnly: !!process.env.CI,
+  /* Retry on CI only */
+  retries: process.env.CI ? 2 : 0,
+  /* Opt out of parallel tests on CI. */
+  workers: process.env.CI ? 1 : undefined,
+  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
+  reporter: 'html',
+  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
+  use: {
+    
+    // Emulates the user locale.
+    locale: 'nl-NL',
+
+    // Emulates the user timezone.
+    timezoneId: 'Europe/Amsterdam',
+
+    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
+    trace: 'on-first-retry',
+
+    viewport: { width: 1920, height: 1080 },
+    isMobile: false,
+    hasTouch: false,
+
+    // Headers per sembrare un browser reale
+    extraHTTPHeaders: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      'Accept-Language': 'nl-NL,nl;q=0.9,en;q=0.8,en-US;q=0.7',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'DNT': '1',
+      'Connection': 'keep-alive',
+      'Upgrade-Insecure-Requests': '1'
+    },
+
+    launchOptions: {
+      args: [
+        // Nascondere automazione
+        '--disable-blink-features=AutomationControlled',
+        '--disable-features=VizDisplayCompositor',
+        '--disable-ipc-flooding-protection',
+        '--disable-renderer-backgrounding',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-background-timer-throttling',
+        '--disable-background-networking',
+        '--disable-default-apps',
+        '--disable-extensions',
+        '--disable-sync',
+        '--disable-translate',
+        '--hide-scrollbars',
+        '--metrics-recording-only',
+        '--mute-audio',
+        '--no-reporting',
+        '--no-default-browser-check',
+        '--no-first-run',
+        '--no-pings',
+        '--no-sandbox',
+        '--no-zygote',
+        '--disable-dev-shm-usage',
+        
+        // Network e sicurezza
+        '--disable-http2',
+        '--disable-web-security',
+        '--ignore-certificate-errors',
+        '--ignore-ssl-errors',
+        '--ignore-certificate-errors-spki-list',
+        '--ignore-certificate-errors-tls-handshake',
+        '--disable-component-extensions-with-background-pages',
+        
+        // User agent reale
+        '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      ]
+    },
+
+    // Configurazioni globali per stabilità
+    actionTimeout: 30000,
+    navigationTimeout: 60000,
+
+  },
+
+  /* Configure projects for major browsers */
   projects: [
     {
-      name: 'chromium',
+      name: 'KVNL - chromium',
+      testDir: './tests/kruidvat_nl',
       use: { 
+        baseURL: testConfig.kruidvat_nl_baseUrl,
         ...devices['Desktop Chrome'],
-        
-        /* Configurazioni specifiche per Chromium */
-        launchOptions: {
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--disable-gpu',
-            '--disable-web-security',
-            '--disable-features=VizDisplayCompositor',
-            '--disable-background-networking',
-            '--disable-background-timer-throttling',
-            '--disable-renderer-backgrounding',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-client-side-phishing-detection',
-            '--disable-crash-reporter',
-            '--disable-oopr-debug-crash-dump',
-            '--no-crash-upload',
-            '--disable-low-res-tiling',
-            '--disable-extensions',
-            '--disable-default-apps',
-            '--disable-http2',
-            '--disable-quic',
-            '--disable-site-isolation-trials',
-            '--disable-blink-features=AutomationControlled',
-            '--disable-component-extensions-with-background-pages',
-            '--disable-ipc-flooding-protection',
-            '--ignore-certificate-errors',
-            '--ignore-ssl-errors',
-            '--ignore-certificate-errors-spki-list',
-            '--disable-features=TranslateUI',
-            '--disable-features=VizDisplayCompositor,VizHitTestSurfaceLayer',
-            '--run-all-compositor-stages-before-draw',
-            '--disable-threaded-animation',
-            '--disable-threaded-scrolling',
-            '--disable-checker-imaging',
-            '--disable-frame-rate-limit',
-            '--disable-background-media-suspend',
-            '--disable-domain-reliability',
-            '--disable-sync',
-            '--disable-translate',
-            '--disable-background-timer-throttling',
-            '--disable-renderer-backgrounding',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-plugins',
-            '--disable-extensions-file-access-check',
-            '--disable-extensions-http-throttling',
-            '--aggressive-cache-discard',
-            '--enable-features=NetworkService,NetworkServiceLogging',
-            '--force-device-scale-factor=1',
-            '--hide-scrollbars'
-          ]
+        ...cdnConfig,
+        extraHTTPHeaders: {
+          ...cdnConfig.extraHTTPHeaders,
+          'Accept-Language': 'nl-NL,nl;q=0.9,en;q=0.8',
         }
       },
     },
 
-    /* Progetti per altri browser (opzionali, commentati per ora) */
-    /*
     {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      name: 'KVB - chromium',
+      testDir: './tests/kruidvat_be',
+      use: { 
+        baseURL: testConfig.kruidvat_be_baseUrl,
+        ...devices['Desktop Chrome'],
+        ...cdnConfig,
+        extraHTTPHeaders: {
+          ...cdnConfig.extraHTTPHeaders,
+          'Accept-Language': 'nl-BE,nl;q=0.9,fr;q=0.8,en;q=0.7',
+        }
+      },
     },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-    */
 
-    /* Progetti mobile (opzionali per test responsive) */
-    /*
     {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      name: 'TP - chromium',
+      testDir: './tests/trekpleister',
+      use: { 
+        baseURL: testConfig.trekpleister_baseUrl,
+        ...devices['Desktop Chrome'],
+        ...cdnConfig,
+        extraHTTPHeaders: {
+          ...cdnConfig.extraHTTPHeaders,
+          'Accept-Language': 'nl-NL,nl;q=0.9,en;q=0.8',
+        }
+      },
     },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    },
-    */
   ],
 
-  /* Timeout globali */
-  timeout: 90 * 1000, // 90 secondi per test
-  expect: {
-    timeout: 15 * 1000 // 15 secondi per assertions
-  },
-
-  /* Configurazione server di sviluppo (se necessario) */
+  /* Run your local dev server before starting the tests */
   // webServer: {
   //   command: 'npm run start',
-  //   url: 'http://127.0.0.1:3000',
+  //   url: 'http://localhost:3000',
   //   reuseExistingServer: !process.env.CI,
   // },
-
-  /* Configurazione output */
-  outputDir: 'test-results/',
-  
-  /* Configurazione per CI/CD */
-  ...(process.env.CI && {
-    /* In CI usa headless e configurazioni ottimizzate */
-    use: {
-      headless: true,
-      /* Timeout più corti per CI per evitare hanging */
-      navigationTimeout: 60 * 1000, // 1 minuto
-      actionTimeout: 30 * 1000, // 30 secondi
-      /* Bypass aggressivo per CI */
-      bypassCSP: true,
-      /* Ignora tutti gli errori SSL */
-      ignoreHTTPSErrors: true,
-      /* Video solo per fallimenti */
-      video: 'retain-on-failure',
-      /* Screenshot sempre in CI */
-      screenshot: 'only-on-failure',
-    },
-    /* Un solo worker in CI per evitare conflitti di risorse */
-    workers: 1,
-    /* Retry ridotti in CI per evitare hanging */
-    retries: 0,
-    /* Timeout globale più corto per evitare hanging */
-    timeout: 120 * 1000, // 2 minuti max per test
-    expect: {
-      timeout: 20 * 1000 // 20 secondi per assertions
-    }
-  }),
-
-  /* Worker settings per performance */
-  workers: process.env.CI ? 1 : undefined,
-  
-  /* Global setup/teardown se necessario */
-  // globalSetup: require.resolve('./global-setup'),
-  // globalTeardown: require.resolve('./global-teardown'),
 });
