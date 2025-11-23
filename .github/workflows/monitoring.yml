@@ -1,4 +1,4 @@
-name: Check Kruidvat Website (Playwright)
+name: Check Kruidvat Website (Advanced Playwright)
 
 on:
   workflow_dispatch:
@@ -19,56 +19,69 @@ jobs:
     - name: Install Playwright
       run: |
         npm init -y
-        npm install @playwright/test
+        npm install playwright playwright-extra playwright-extra-plugin-stealth
         npx playwright install --with-deps
 
-    - name: Create Playwright test
+    - name: Create Playwright script
       run: |
         cat << 'EOF' > test-kruidvat.js
-        const { chromium, devices } = require('@playwright/test');
+        const { chromium } = require('playwright-extra');
+        const stealth = require('playwright-extra-plugin-stealth')();
+
+        chromium.use(stealth);
 
         (async () => {
-          // Emulazione browser desktop reale
-          const iPhone = devices['Desktop Chrome'];
-
           const browser = await chromium.launch({
             headless: true,
             args: [
+              "--no-sandbox",
+              "--disable-setuid-sandbox",
+
+              // ***** FORCE HTTP/1 *****
+              "--disable-http2",
+              "--disable-features=NetworkService",
+              "--disable-features=AllowHTTP2",
+
+              // ***** ANTI-DETETCTION *****
               "--disable-blink-features=AutomationControlled",
-              "--no-sandbox"
+              "--disable-web-security",
+              "--disable-features=IsolateOrigins,site-per-process"
             ]
           });
 
           const context = await browser.newContext({
-            ...iPhone,
             locale: "nl-NL",
-            geolocation: { longitude: 5.1214, latitude: 52.0907 }, // Paesi Bassi
+            timezoneId: "Europe/Amsterdam",
+            userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123 Safari/537.36",
+            viewport: { width: 1366, height: 768 },
+            deviceScaleFactor: 1,
+            geolocation: { longitude: 5.1214, latitude: 52.0907 },
             permissions: ["geolocation"],
+            ignoreHTTPSErrors: true
           });
 
           const page = await context.newPage();
 
           try {
             console.log("Opening Kruidvat...");
+
             await page.goto("https://www.kruidvat.nl", {
-              timeout: 20000
+              waitUntil: "domcontentloaded",
+              timeout: 90000
             });
 
-            const title = await page.title();
-            console.log("Page title:", title);
+            console.log("Title:", await page.title());
 
-            // Screenshot per debug
             await page.screenshot({ path: "kruidvat.png", fullPage: true });
 
-            // Salva HTML risultante
             const html = await page.content();
-            const fs = require('fs');
+            const fs = require("fs");
             fs.writeFileSync("kruidvat.html", html);
 
-            console.log("Saved screenshot and HTML.");
+            console.log("Saved screenshot + HTML");
 
           } catch (err) {
-            console.error("Error:", err);
+            console.error("ERROR:", err);
           }
 
           await browser.close();
