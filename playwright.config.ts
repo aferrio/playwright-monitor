@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { testConfig } from './config/test-config';
+
 
 // Configurazioni comuni per tutti i siti con CDN/anti-detection
 const cdnConfig = {
@@ -133,7 +133,7 @@ export default defineConfig({
       name: 'KVNL - chromium',
       testDir: './tests/kruidvat_nl',
       use: { 
-        baseURL: testConfig.kruidvat_nl_baseUrl,
+        baseURL: 'https://www.kruidvat.nl',
         ...devices['Desktop Chrome'],
         ...cdnConfig,
         extraHTTPHeaders: {
@@ -147,7 +147,7 @@ export default defineConfig({
       name: 'KVB - chromium',
       testDir: './tests/kruidvat_be',
       use: { 
-        baseURL: testConfig.kruidvat_be_baseUrl,
+        baseURL: 'https://www.kruidvat.be',
         ...devices['Desktop Chrome'],
         ...cdnConfig,
         extraHTTPHeaders: {
@@ -161,7 +161,7 @@ export default defineConfig({
       name: 'TP - chromium',
       testDir: './tests/trekpleister',
       use: { 
-        baseURL: testConfig.trekpleister_baseUrl,
+        baseURL: 'https://www.trekpleister.nl',
         ...devices['Desktop Chrome'],
         ...cdnConfig,
         extraHTTPHeaders: {
