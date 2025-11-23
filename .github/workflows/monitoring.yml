@@ -1,16 +1,14 @@
-name: Check Kruidvat Website
+name: Check Kruidvat Website (Playwright)
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 * * * *"  # ogni ora (opzionale)
 
 jobs:
   test-browser:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repo
+    - name: Checkout
       uses: actions/checkout@v4
 
     - name: Setup Node.js
@@ -18,61 +16,73 @@ jobs:
       with:
         node-version: 20
 
-    - name: Install Puppeteer
+    - name: Install Playwright
       run: |
         npm init -y
-        npm install puppeteer
+        npm install @playwright/test
+        npx playwright install --with-deps
 
-    - name: Run browser simulation
+    - name: Create Playwright test
       run: |
-        cat << 'EOF' > test.js
-        const puppeteer = require('puppeteer');
+        cat << 'EOF' > test-kruidvat.js
+        const { chromium, devices } = require('@playwright/test');
 
         (async () => {
-          const browser = await puppeteer.launch({
+          // Emulazione browser desktop reale
+          const iPhone = devices['Desktop Chrome'];
+
+          const browser = await chromium.launch({
             headless: true,
             args: [
-              "--no-sandbox",
-              "--disable-setuid-sandbox",
-              "--disable-blink-features=AutomationControlled"
+              "--disable-blink-features=AutomationControlled",
+              "--no-sandbox"
             ]
           });
 
-          const page = await browser.newPage();
-
-          // Spoof browser fingerprint (aiuta contro alcuni bot manager)
-          await page.setUserAgent(
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122 Safari/537.36"
-          );
-
-          await page.setExtraHTTPHeaders({
-            "accept-language": "en-US,en;q=0.9"
+          const context = await browser.newContext({
+            ...iPhone,
+            locale: "nl-NL",
+            geolocation: { longitude: 5.1214, latitude: 52.0907 }, // Paesi Bassi
+            permissions: ["geolocation"],
           });
 
+          const page = await context.newPage();
+
           try {
+            console.log("Opening Kruidvat...");
             await page.goto("https://www.kruidvat.nl", {
-              waitUntil: "networkidle2",
-              timeout: 45000
+              waitUntil: "networkidle",
+              timeout: 60000
             });
 
-            console.log("Page title:", await page.title());
+            const title = await page.title();
+            console.log("Page title:", title);
 
             // Screenshot per debug
-            await page.screenshot({ path: "kruidvat.png" });
+            await page.screenshot({ path: "kruidvat.png", fullPage: true });
 
-            console.log("Screenshot saved: kruidvat.png");
-          } catch (e) {
-            console.error("Error opening page:", e);
+            // Salva HTML risultante
+            const html = await page.content();
+            const fs = require('fs');
+            fs.writeFileSync("kruidvat.html", html);
+
+            console.log("Saved screenshot and HTML.");
+
+          } catch (err) {
+            console.error("Error:", err);
           }
 
           await browser.close();
         })();
         EOF
 
-        node test.js
+    - name: Run Playwright script
+      run: node test-kruidvat.js
 
-    - name: Upload screenshot
+    - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: kruidvat-screenshot
-        path: kruidvat.png
+        name: kruidvat-debug
+        path: |
+          kruidvat.png
+          kruidvat.html
