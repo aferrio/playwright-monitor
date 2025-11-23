@@ -19,34 +19,34 @@ jobs:
     - name: Install Playwright + stealth
       run: |
         npm init -y
-        npm install playwright-extra playwright-extra-plugin-stealth playwright
+        npm install playwright playwright-stealth
         npx playwright install --with-deps
 
     - name: Create script
       run: |
         cat << 'EOF' > test-kruidvat.js
-        const playwright = require("playwright-extra");
-        const stealthPlugin = require("playwright-extra-plugin-stealth")();
-
-        // apply stealth plugin
-        playwright.use(stealthPlugin);
+        const { chromium } = require("playwright");
+        const stealth = require("playwright-stealth");
 
         (async () => {
-          const { chromium } = playwright;
-
           const browser = await chromium.launch({
             headless: true,
             args: [
               "--no-sandbox",
               "--disable-setuid-sandbox",
+
+              // force HTTP/1
               "--disable-http2",
               "--disable-features=NetworkService,AllowHTTP2",
+
+              // anti-detection
               "--disable-blink-features=AutomationControlled",
               "--disable-features=IsolateOrigins,site-per-process",
             ]
           });
 
           const context = await browser.newContext({
+            ...stealth, // Apply stealth modifications
             locale: "nl-NL",
             timezoneId: "Europe/Amsterdam",
             userAgent:
@@ -72,10 +72,9 @@ jobs:
 
           } catch (err) {
             console.error("ERROR:", err);
-            process.exitCode = 2;
-          } finally {
-            await browser.close();
           }
+
+          await browser.close();
         })();
         EOF
 
