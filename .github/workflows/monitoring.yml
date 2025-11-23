@@ -1,119 +1,78 @@
-name: Site Monitoring
+name: Check Kruidvat Website
 
 on:
-  schedule:
-    # Esegue ogni 5 minuti
-    - cron: '*/5 * * * *'
   workflow_dispatch:
-    # Permette di eseguire manualmente il workflow
+  schedule:
+    - cron: "0 * * * *"  # ogni ora (opzionale)
 
 jobs:
-  monitor:
+  test-browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repo
+      uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
 
-      - name: Install dependencies
-        run: npm ci
+    - name: Install Puppeteer
+      run: |
+        npm init -y
+        npm install puppeteer
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+    - name: Run browser simulation
+      run: |
+        cat << 'EOF' > test.js
+        const puppeteer = require('puppeteer');
 
-      - name: Run monitoring tests
-        id: test-run
-        timeout-minutes: 12
-        env:
-          EMAIL_USER: ${{ secrets.EMAIL_USER }}
-          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
-          TO_EMAIL: ${{ secrets.TO_EMAIL }}
-          SMTP_HOST: ${{ secrets.SMTP_HOST }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          CI: true
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
-          DISPLAY: :99
-        run: |
-          echo "🚀 Avvio test di monitoraggio..."
-          
-          # Setup display virtuale per headless
-          export DISPLAY=:99
-          sudo Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-          
-          # Configura DNS per stabilità
-          echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
-          echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf > /dev/null
-          
-          # Funzione di cleanup per forzare notifiche
-          cleanup_and_notify() {
-            echo "⚠️ Test interrotti da timeout - cleanup processi e notifica emergenza"
-            
-            # Kill tutti i processi Chromium/Playwright bloccati
-            sudo pkill -f chromium || true
-            sudo pkill -f playwright || true
-            sudo pkill -f node.*test || true
-            
-            # Forza cleanup delle risorse
-            sudo killall -9 Xvfb || true
-            
-            if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
-              curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-                -d chat_id="$TELEGRAM_CHAT_ID" \
-                -d parse_mode="HTML" \
-                -d text="🚨 <b>TIMEOUT SISTEMA MONITORING</b>%0A%0A⏰ Test terminati forzatamente dopo 12 minuti%0A🔧 Processi Chromium/Playwright killed%0A💾 Cleanup risorse completato%0A%0A📝 <b>Action:</b> Site Monitoring%0A🔗 <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View Details</a>%0A⏰ $(date -u +\"%Y-%m-%d %H:%M UTC\")%0A%0A🤖 <i>Emergency Force Cleanup</i>" || echo "❌ Notifica Telegram fallita"
-            fi
-            exit 1
+        (async () => {
+          const browser = await puppeteer.launch({
+            headless: true,
+            args: [
+              "--no-sandbox",
+              "--disable-setuid-sandbox",
+              "--disable-blink-features=AutomationControlled"
+            ]
+          });
+
+          const page = await browser.newPage();
+
+          // Spoof browser fingerprint (aiuta contro alcuni bot manager)
+          await page.setUserAgent(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122 Safari/537.36"
+          );
+
+          await page.setExtraHTTPHeaders({
+            "accept-language": "en-US,en;q=0.9"
+          });
+
+          try {
+            await page.goto("https://www.kruidvat.nl", {
+              waitUntil: "networkidle2",
+              timeout: 45000
+            });
+
+            console.log("Page title:", await page.title());
+
+            // Screenshot per debug
+            await page.screenshot({ path: "kruidvat.png" });
+
+            console.log("Screenshot saved: kruidvat.png");
+          } catch (e) {
+            console.error("Error opening page:", e);
           }
-          
-          # Imposta trap per timeout e segnali
-          trap cleanup_and_notify TERM INT
-          
-          # Esegui test con timeout interno ridotto e kill automatico
-          timeout --kill-after=30s 10m npx playwright test --reporter=line,html --max-failures=3 || {
-            echo "⚠️ Test terminati da timeout interno - eseguo cleanup"
-            cleanup_and_notify
-          }
-          
-          echo "✅ Test completati con successo"
-        continue-on-error: true
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-${{ github.run_number }}
-          path: |
-            test-results/
-            playwright-report/
-          retention-days: 7
+          await browser.close();
+        })();
+        EOF
 
-      - name: Check for test failures and notify on Telegram
-        if: always()
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: |
-          echo "🔍 Controllo risultati test..."
-          
-          # Controlla se ci sono stati fallimenti nei test results
-          if [ -d "test-results" ] && [ "$(find test-results -name '*.json' -type f | wc -l)" -gt 0 ]; then
-            echo "📊 Test results trovati - le notifiche saranno gestite dal sistema interno"
-          else
-            echo "⚠️ Nessun test result trovato - possibile errore di sistema"
-            if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
-              curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-                -d chat_id="$TELEGRAM_CHAT_ID" \
-                -d parse_mode="HTML" \
-                -d text="⚠️ <b>Sistema Monitoring - Errore di Sistema</b>%0A%0A🚫 Nessun risultato di test generato%0AVerificare la configurazione del workflow%0A%0A🔗 <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View Run Details</a>%0A⏰ $(date -u +\"%Y-%m-%d %H:%M UTC\")%0A%0A🤖 <i>GitHub Actions Alert</i>"
-            fi
-          fi
+        node test.js
+
+    - name: Upload screenshot
+      uses: actions/upload-artifact@v4
+      with:
+        name: kruidvat-screenshot
+        path: kruidvat.png
