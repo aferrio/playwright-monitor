@@ -1,13 +1,13 @@
 # 🔍 Playwright Site Monitor
 
-Sistema completo di monitoraggio automatico per siti web con notifiche email e Telegram in caso di problemi.
+Sistema completo di monitoraggio automatico per siti web con notifiche Telegram in caso di problemi.
 
 ## 🚀 Caratteristiche
 
 - **Monitoraggio Multi-Sito**: Monitora automaticamente Kruidvat BE/NL e Trekpleister
 - **Gestione Automatica Cookie**: Accetta automaticamente i popup dei cookie  
-- **Notifiche Dual-Channel**: Email dettagliate + notifiche Telegram istantanee
-- **Report Centralizzato**: Un solo report finale dopo tutti i test
+- **Notifiche Telegram**: Alert istantanei solo in caso di fallimenti
+- **GitHub Actions**: Monitoraggio automatico ogni 5 minuti 24/7
 - **CI/CD Ready**: Workflow GitHub Actions ottimizzato per headless
 - **Configurazione Robusta**: Timeout dinamici e gestione errori avanzata
 - **Contenuto Intelligente**: Verifica presenza di contenuti specifici per sito
@@ -16,8 +16,7 @@ Sistema completo di monitoraggio automatico per siti web con notifiche email e T
 
 - Node.js 20+ 
 - NPM
-- Account Gmail per notifiche email
-- Bot Telegram per notifiche istantanee
+- Bot Telegram per notifiche
 
 ## 🛠️ Installazione
 
@@ -30,32 +29,17 @@ npm install
 npx playwright install --with-deps chromium
 ```
 
-### 2. Configurazione Email
+### 2. Configurazione Telegram
 
 Crea un file `.env` nella root del progetto:
 
 ```env
-# Configurazione Email (Gmail)
-EMAIL_USER=tuo-email@gmail.com
-EMAIL_PASSWORD=tua-app-password-gmail
-FROM_EMAIL=tuo-email@gmail.com
-TO_EMAIL=destinatario@gmail.com
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-
-# Configurazione Telegram (opzionale ma consigliato)  
+# Configurazione Telegram
 TELEGRAM_BOT_TOKEN=123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
 TELEGRAM_CHAT_ID=-1001234567890
 ```
 
-### 3. Setup Gmail App Password
-
-1. Vai su [myaccount.google.com](https://myaccount.google.com)
-2. **Sicurezza** → **Verifica in due passaggi** (deve essere attiva)
-3. **Password delle app** → Genera nuova password
-4. Copia la password generata in `EMAIL_PASSWORD`
-
-### 4. Setup Bot Telegram (Opzionale)
+### 3. Setup Bot Telegram
 
 1. Scrivi a [@BotFather](https://t.me/botfather) su Telegram
 2. Digita `/newbot` e segui le istruzioni
@@ -88,11 +72,7 @@ npx playwright test --headed
 
 1. **Configura Secrets** nel repository GitHub:
    - `Settings` → `Secrets and variables` → `Actions`
-   - Aggiungi tutti i secrets del file `.env`:
-     - `EMAIL_USER`
-     - `EMAIL_PASSWORD` 
-     - `FROM_EMAIL`
-     - `TO_EMAIL`
+   - Aggiungi i secrets Telegram:
      - `TELEGRAM_BOT_TOKEN`
      - `TELEGRAM_CHAT_ID`
 
@@ -115,9 +95,7 @@ playwright-monitor/
 │   └── trekpleister/          # Test Trekpleister (+ Uit onze folder)
 ├── utils/
 │   ├── cookieHelper.ts        # Gestione automatica cookie
-│   ├── emailNotifier.ts       # Notifiche email
-│   ├── telegramNotifier.ts    # Notifiche Telegram
-│   └── testReportManager.ts   # Manager report centralizzato
+│   └── telegramNotifier.ts    # Notifiche Telegram
 ├── playwright.config.ts       # Configurazione Playwright ottimizzata
 ├── package.json
 └── README.md
@@ -141,26 +119,20 @@ playwright-monitor/
 - ✅ **Cookie Management**: Gestione automatica popup
 - ✅ **Extended Timeouts**: Configurazioni specifiche per maggiore stabilità
 
-## 📧 Sistema Notifiche
+## 📱 Sistema Notifiche
 
-### Email (Sempre attivo)
-- **Report dettagliato** con:
-  - Statistiche complete (totale, passati, falliti)
-  - Dettagli errori con stack trace
-  - Lista test passati
-  - Timestamp e informazioni tecniche
-
-### Telegram (Istantaneo)
-- **Alert immediato** con:
-  - Riassunto veloce stato test
-  - Lista siti con problemi
-  - Percentuale successo
-  - Messaggio formattato e leggibile
+### Telegram (GitHub Actions)
+- **Alert automatici** quando i test falliscono in CI/CD
+- **Informazioni dettagliate**:
+  - Numero di test falliti
+  - Link al workflow GitHub Actions
+  - Timestamp dell'errore
+  - ID del run per tracciabilità
 
 ### Quando vengono inviate?
-- **Solo in caso di fallimenti**
-- **Un solo report finale** (non per ogni test)
-- **Dual-channel** (email + Telegram insieme)
+- **Solo in caso di fallimenti** in GitHub Actions
+- **Una notifica per workflow** fallito
+- **Silenzioso quando tutto funziona**
 
 ## ⚙️ Configurazione Avanzata
 
@@ -169,14 +141,6 @@ playwright-monitor/
 Nel tuo repository GitHub (`Settings` → `Secrets and variables` → `Actions`), configura:
 
 ```
-📧 Email/Gmail:
-EMAIL_USER=tuo-email@gmail.com
-EMAIL_PASSWORD=tua-app-password-gmail  
-FROM_EMAIL=tuo-email@gmail.com
-TO_EMAIL=destinatario@gmail.com
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-
 🤖 Telegram:
 TELEGRAM_BOT_TOKEN=123456789:ABC-DEF...
 TELEGRAM_CHAT_ID=-1001234567890
@@ -225,7 +189,7 @@ La configurazione include già:
 - User-Agent randomizzato
 - Disabilitazione HTTP/2
 - Gestione certificati
-- Bypass detection automatiche
+- **Bypass detection automatico**: Configurazioni anti-bot integrate
 
 ## 🔧 Troubleshooting
 
@@ -235,11 +199,7 @@ La configurazione include già:
 3. Verifica connettività: timeout potrebbero essere insufficienti
 4. Usa `workflow_dispatch` per test manuali
 
-### 📧 Email Non Arrivano
-1. Verifica Gmail **App Password** (non password account normale)
-2. Controlla cartella spam/promozioni
-3. Assicurati che **2FA sia attivata** su Gmail
-4. Verifica che `SMTP_HOST` e `SMTP_PORT` siano corretti nei secrets
+
 
 ### 📱 Telegram Non Funziona  
 1. Verifica Bot Token: `https://api.telegram.org/bot<TOKEN>/getMe`
@@ -263,8 +223,7 @@ La configurazione include già:
 
 I risultati sono disponibili in:
 - **GitHub Actions**: Logs dettagliati, artifacts e history completa  
-- **Email Reports**: Report HTML formattati con statistiche complete
-- **Telegram**: Alert immediati con icone per sito (🛒 Kruidvat, 💊 Trekpleister)
+- **Telegram**: Alert immediati quando i workflow falliscono
 - **Local**: `test-results/` e `playwright-report/` per sviluppo
 
 ## 🚀 Deploy e Utilizzo
@@ -294,8 +253,6 @@ npx playwright test --ui
 
 ### Configurazione Secrets
 Nel repository GitHub, configura questi secrets obbligatori:
-- `EMAIL_USER`, `EMAIL_PASSWORD`, `FROM_EMAIL`, `TO_EMAIL`
-- `SMTP_HOST`, `SMTP_PORT`  
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
 
 ## 🤝 Contribuire
