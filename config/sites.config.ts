@@ -31,7 +31,7 @@ export const SITES_CONFIG: Record<string, SiteConfig> = {
     name: 'Trekpleister',
     url: 'https://www.trekpleister.nl',
     locale: 'nl-NL',
-    expectedContent: ['Uit onze folder', 'Trekpleister','cicciopasticcio'],
+    expectedContent: ['Uit onze folder', 'Trekpleister'],
     titlePattern: /Trekpleister/i
   }
 };
