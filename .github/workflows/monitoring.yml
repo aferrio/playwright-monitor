@@ -2,8 +2,8 @@ name: Kruidvat and Trekpleiter Site Monitoring
 
 on:
   schedule:
-    # Esegue ogni 3 minuti (per compensare ritardi GitHub)
-    - cron: '*/3 * * * *'
+    # Esegue ogni 5 minuti (per compensare ritardi GitHub)
+    - cron: '*/5 * * * *'
   workflow_dispatch:
     # Permette di eseguire manualmente il workflow
 
