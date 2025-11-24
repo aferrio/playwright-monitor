@@ -32,4 +32,13 @@ test.describe('Kruidvat Nederland', () => {
       await expect(page.locator('body')).toContainText(content, { ignoreCase: true });
     }
   });
+
+  test('cart page access', async ({ page }) => {
+    await page.goto('/cart');
+    
+    // Verifica che la pagina contenga il testo "Winkelmandje"
+    await expect(page.locator('body')).toContainText('Winkelmandje', { ignoreCase: true });
+    
+    console.log('✅ Pagina carrello caricata correttamente con testo "Winkelmandje"');
+  });
 });

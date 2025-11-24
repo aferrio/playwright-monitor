@@ -32,4 +32,11 @@ test.describe('Trekpleister', () => {
       await expect(page.locator('body')).toContainText(content, { ignoreCase: true });
     }
   });
+
+  test('cart page access', async ({ page }) => {
+    await page.goto('/cart');
+    
+    // Verifica che la pagina contenga il testo "Jouw Winkelmand"
+    await expect(page.locator('body')).toContainText('Jouw Winkelmand', { ignoreCase: true });
+  });
 });
