@@ -43,6 +43,41 @@ jobs:
           echo "✅ Test completati con successo"
         continue-on-error: true
 
+      - name: Check test results and notify on failures
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          echo "🔍 Controllo risultati test..."
+          
+          # Controlla se ci sono stati fallimenti
+          if [ "${{ steps.test-run.outcome }}" != "success" ]; then
+            echo "❌ Test falliti - invio notifica Telegram"
+            
+            if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+              # Crea messaggio di errore
+              MESSAGE="🚨 <b>FALLIMENTO MONITORING SITI</b>%0A%0A"
+              MESSAGE+="❌ <b>Test Status:</b> ${{ steps.test-run.outcome }}%0A"
+              MESSAGE+="⏰ <b>Timestamp:</b> $(date -u +\"%Y-%m-%d %H:%M UTC\")%0A%0A"
+              MESSAGE+="🔗 <b>Dettagli:</b> <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View Run</a>%0A%0A"
+              MESSAGE+="📋 <b>Siti monitorati:</b>%0A"
+              MESSAGE+="• Kruidvat Nederland%0A"
+              MESSAGE+="• Kruidvat Belgium%0A"
+              MESSAGE+="• Trekpleister%0A%0A"
+              MESSAGE+="🤖 <i>Automated Alert from GitHub Actions</i>"
+              
+              curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+                -d chat_id="$TELEGRAM_CHAT_ID" \
+                -d parse_mode="HTML" \
+                -d text="$MESSAGE" || echo "❌ Invio notifica Telegram fallito"
+            else
+              echo "⚠️ Credenziali Telegram non configurate"
+            fi
+          else
+            echo "✅ Tutti i test sono passati - nessuna notifica necessaria"
+          fi
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
