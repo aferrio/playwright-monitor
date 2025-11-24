@@ -36,11 +36,11 @@ export const SITES_CONFIG: Record<string, SiteConfig> = {
   }
 };
 
-// Timeout configurazioni
+// Timeout brevissimi per siti Akamai CDN
 export const TIMEOUTS = {
-  NAVIGATION: process.env.CI ? 300000 : 60000,  // 5 min in CI, 1 min locale
-  ELEMENT_WAIT: process.env.CI ? 60000 : 10000,  // 1 min in CI, 10s locale
-  RETRY_DELAY: 5000,
-  PAGE_LOAD_DELAY: process.env.CI ? 15000 : 3000,  // 15s in CI, 3s locale
+  NAVIGATION: 15000,        // 15 secondi max navigazione
+  ELEMENT_WAIT: 8000,       // 8 secondi max elementi
+  RETRY_DELAY: 2000,        // 2 secondi tra retry
+  PAGE_LOAD_DELAY: 1000,    // 1 secondo attesa caricamento
 };
 

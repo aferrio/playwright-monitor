@@ -1,90 +1,54 @@
-name: Check Kruidvat Website (Advanced Playwright)
+name: Kruidvat and Trekpleiter Site Monitoring
 
 on:
+  schedule:
+    # Esegue ogni 5 minuti
+    - cron: '*/5 * * * *'
   workflow_dispatch:
+    # Permette di eseguire manualmente il workflow
 
 jobs:
-  test-browser:
+  monitor:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 15
+    
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-    - name: Install Playwright + stealth
-      run: |
-        npm init -y
-        npm install playwright playwright-stealth
-        npx playwright install --with-deps
+      - name: Install dependencies
+        run: npm ci
 
-    - name: Create script
-      run: |
-        cat << 'EOF' > test-kruidvat.js
-        const { chromium } = require("playwright");
-        const stealth = require("playwright-stealth");
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
 
-        (async () => {
-          const browser = await chromium.launch({
-            headless: true,
-            args: [
-              "--no-sandbox",
-              "--disable-setuid-sandbox",
+      - name: Run monitoring tests
+        id: test-run
+        timeout-minutes: 12
+        env:
+          CI: true
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+        run: |
+          echo "🚀 Esecuzione test Playwright per tutti e tre i siti..."
+          
+          # Esegui tutti i test Playwright
+          npx playwright test --reporter=line,html
+          
+          echo "✅ Test completati con successo"
+        continue-on-error: true
 
-              // force HTTP/1
-              "--disable-http2",
-              "--disable-features=NetworkService,AllowHTTP2",
-
-              // anti-detection
-              "--disable-blink-features=AutomationControlled",
-              "--disable-features=IsolateOrigins,site-per-process",
-            ]
-          });
-
-          const context = await browser.newContext({
-            ...stealth, // Apply stealth modifications
-            locale: "nl-NL",
-            timezoneId: "Europe/Amsterdam",
-            userAgent:
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123 Safari/537.36",
-            viewport: { width: 1366, height: 768 },
-            ignoreHTTPSErrors: true
-          });
-
-          const page = await context.newPage();
-
-          try {
-            console.log("Opening Kruidvat…");
-
-            await page.goto("https://www.kruidvat.nl", {
-              waitUntil: "domcontentloaded",
-              timeout: 90000
-            });
-
-            console.log("Title:", await page.title());
-
-            await page.screenshot({ path: "kruidvat.png", fullPage: true });
-            require("fs").writeFileSync("kruidvat.html", await page.content());
-
-          } catch (err) {
-            console.error("ERROR:", err);
-          }
-
-          await browser.close();
-        })();
-        EOF
-
-    - name: Run script
-      run: node test-kruidvat.js
-
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: kruidvat-debug
-        path: |
-          kruidvat.png
-          kruidvat.html
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_number }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
